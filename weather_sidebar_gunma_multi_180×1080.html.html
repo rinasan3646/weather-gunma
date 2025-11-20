@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>群馬県 複数地域 1週間天気サイネージ</title>
+<style>
+  body {
+    margin: 0;
+    width: 180px;
+    height: 1080px;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(to bottom, #87CEFA, #ffffff);
+    color: #000;
+    overflow-y: auto;
+  }
+  h2 {
+    font-size: 22px;
+    margin: 8px 0;
+    text-align: center;
+  }
+  .day {
+    width: 100%;
+    font-size: 18px;
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 5px;
+    border-bottom: 1px solid #ccc;
+  }
+  .day span {
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+  <h1>群馬県 7日間天気</h1>
+  <div id="forecast"></div>
+
+<script>
+const API_KEY = 'YOUR_API_KEY'; // OpenWeatherMap APIキー
+const LOCATIONS = [
+  {name:'前橋', lat:36.3913, lon:139.0609},
+  {name:'高崎', lat:36.3214, lon:139.0243},
+  {name:'伊勢崎', lat:36.3225, lon:139.2093},
+  {name:'太田', lat:36.3104, lon:139.3717} ];
+
+async function updateForecast() {
+  const forecastDiv = document.getElementById('forecast');
+  forecastDiv.innerHTML = '';
+
+  const days = ['日曜','月曜','火曜','水曜','木曜','金曜','土曜'];
+
+  for(const loc of LOCATIONS) {
+    try {
+      const res = await fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${loc.lat}&lon=${loc.lon}&exclude=current,minutely,hourly,alerts&units=metric&lang=ja&appid=${API_KEY}`);
+      const data = await res.json();
+
+      const cityTitle = document.createElement('h2');
+      cityTitle.textContent = loc.name;
+      forecastDiv.appendChild(cityTitle);
+
+      data.daily.slice(0,7).forEach(dayData => {
+        const date = new Date(dayData.dt * 1000);
+        const dayName = days[date.getDay()];
+        let icon = '☀️';
+        const weather = dayData.weather[0].main;
+        if (weather.includes('Rain')) icon = '🌧️';
+        else if (weather.includes('Cloud')) icon = '☁️';
+        else if (weather.includes('Snow')) icon = '❄️';
+
+        const div = document.createElement('div');
+        div.className = 'day';
+        div.innerHTML = `<span>${dayName}</span> <span>${icon}</span> <span>${Math.round(dayData.temp.max)}℃/${Math.round(dayData.temp.min)}℃</span> <span>降水${Math.round((dayData.pop||0)*100)}%</span>`;
+        forecastDiv.appendChild(div);
+      });
+    } catch(e) {
+      console.error('天気取得失敗', e);
+    }
+  }
+}
+
+updateForecast();
+setInterval(updateForecast, 600000);
+</script>
+</body>
+</html>
